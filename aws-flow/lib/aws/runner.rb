@@ -199,7 +199,12 @@ module AWS
             task_list ||= "#{classes.first}"
 
             # Create a worker
-            worker = ActivityWorker.new(swf.client, domain, task_list) {{ execution_workers: fork_count }}
+            worker = ActivityWorker.new(swf.client, domain, task_list) {
+              {
+                execution_workers: fork_count,
+                logger: Logger.new(STDOUT)
+              }
+            }
 
             classes.each do |c|
               c = AWS::Flow::Templates.make_activity_class(c) unless c.is_a?(AWS::Flow::Activities)
@@ -275,7 +280,9 @@ module AWS
                                       clazz: AWS::Flow::Workflows})
 
             # Create a worker
-            worker = WorkflowWorker.new(swf.client, domain, task_list, *classes)
+            worker = WorkflowWorker.new(swf.client, domain, task_list, *classes) {
+              { logger: Logger.new(STDOUT) }
+            }
 
             # Start as many workers as desired in child processes
             workers << spawn_and_start_workers(w, "workflow-worker", worker)
@@ -431,4 +438,3 @@ end
 if __FILE__ == $0
   AWS::Flow::Runner.main()
 end
-
